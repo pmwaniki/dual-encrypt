@@ -118,3 +118,39 @@ bcdedit /set "{bootmgr}" path \EFI\ubuntu\grubx64.efi
 
 ```
 
+### LUKS recovery
+It is important to back up the LUKS headers which can get damaged during kernel upgrade. If the headers are damaged and can not be restored it is not possible to recover encrypted data.
+
+
+#### Backing up LUKS headers
+
+LUKS headers can be exported to a file for same storage on another device as follows
+
+```bash
+cryptsetup luksHeaderBackup <device> --header-backup-file <file>
+```
+
+If the headers are damaged they can be restored as follows:
+```bash
+cryptsetup luksHeaderRestore <device> --header-backup-file <file>
+```
+
+#### Adding additional keys 
+LUKS has 8 key slots that allow having a total of 8 keys. The 7 keys can be used for backup. 
+
+To view which key slots are already filled:
+```bash
+cryptsetup luksDump /dev/sda7
+
+```
+A key slot can be filled with a passphrase or a file. For instance, we can generate a random file and use it as a recover key as follows:
+
+```bash
+dd bs=512 count=4 if=/dev/random of=/etc/mykeyfile #generate key file
+cryptsetup luksAddKey /dev/sda7 /etc/mykeyfile #add keyfile
+```
+You will be asked to enter an already existing passphrase before adding a new key. The keyfile can then be stored in another secure location and used for recovery. To unlock the LUKS using a keyfile:
+
+```bash
+cryptsetup open /dev/sda7 <dm_name> --key-file /etc/mykeyfile
+```
